@@ -1,19 +1,20 @@
 # Cloud Service Health Monitor
 
-A Python application that periodically checks website and API availability, measures request duration, and logs failed checks.
+A Python application that checks website and API availability, measures response time, logs failed checks, and stores every result in SQLite.
 
 ## Features
 
 - Checks multiple URLs sequentially.
-- Reports `UP` for HTTP status codes from 200 to 299 and `DOWN` for other codes.
-- Handles connection errors and timeouts.
-- Displays response time in milliseconds.
+- Reports `UP` for HTTP status codes from 200 to 299.
+- Reports `DOWN` for other status codes, connection errors, and timeouts.
+- Measures response time in milliseconds.
 - Shows the local date and time with timezone information.
-- Records failed checks in `monitor.log`.
-- Waits for a configurable interval between check rounds.
+- Logs failed checks in `monitor.log`.
+- Stores check results in the local SQLite database `monitor.db`.
 - Provides a FastAPI endpoint for checking a service.
-- Provides interactive API documentation with Swagger UI.
-- Stops gracefully with Control + C.
+- Provides an endpoint for listing recent check results.
+- Includes interactive API documentation with Swagger UI.
+- Stops the monitoring script gracefully with Control + C.
 
 ## Technologies
 
@@ -21,6 +22,7 @@ A Python application that periodically checks website and API availability, meas
 - FastAPI
 - Uvicorn
 - requests
+- SQLite through Python's standard `sqlite3` library
 - Python standard library: time, datetime, and logging
 
 ## Installation
@@ -43,7 +45,7 @@ py -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-## Monitoring Script Usage
+## Monitoring Script
 
 With the virtual environment activated, run:
 
@@ -51,11 +53,11 @@ With the virtual environment activated, run:
 python monitor.py
 ```
 
-The script checks every URL in the `urls` list, waits for the configured interval, and starts the next round.
+The script checks every URL in the `urls` list, saves each result to SQLite, waits for the configured interval, and starts the next round.
 
 Press **Control + C** in the terminal to stop monitoring.
 
-## FastAPI API
+## FastAPI Server
 
 Start the API server with:
 
@@ -69,33 +71,21 @@ The API will be available at:
 http://127.0.0.1:8000
 ```
 
-The root endpoint confirms that the API is running:
-
-```text
-http://127.0.0.1:8000/
-```
-
 Interactive API documentation is available at:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## Check a Service Through the API
+## API Endpoints
+
+### Check a service
 
 Use the `/check` endpoint with a URL query parameter:
 
 ```text
 http://127.0.0.1:8000/check?url=https://www.google.com
 ```
-
-The endpoint returns JSON containing:
-
-- URL
-- Service status
-- HTTP status code
-- Response time in milliseconds
-- Check time
 
 Example response:
 
@@ -109,6 +99,53 @@ Example response:
 }
 ```
 
+Every API check is also saved in `monitor.db`.
+
+### List recent checks
+
+Use the `/checks` endpoint to view saved results:
+
+```text
+http://127.0.0.1:8000/checks
+```
+
+The default response contains the 20 most recent checks. You can change the number with the `limit` parameter:
+
+```text
+http://127.0.0.1:8000/checks?limit=5
+```
+
+### Root endpoint
+
+The root endpoint confirms that the API is running:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Example response:
+
+```json
+{
+  "message": "Cloud Service Health Monitor API is running"
+}
+```
+
+## Database
+
+The application creates a `checks` table in `monitor.db` automatically when the API starts or when a check is performed.
+
+Each saved record contains:
+
+- Record ID
+- URL
+- Service status
+- HTTP status code
+- Response time in milliseconds
+- Check time
+
+The database file is local and is excluded from Git with `.gitignore`.
+
 ## Configuration
 
 Edit the `urls` list in `monitor.py` to choose which services the monitoring script checks:
@@ -120,13 +157,13 @@ urls = [
 ]
 ```
 
-Set the waiting interval using:
+Set the waiting interval with:
 
 ```python
 CHECK_INTERVAL_SECONDS = 30
 ```
 
-The application waits this many seconds after all URLs have been checked. A complete monitoring round includes the check durations and this waiting time.
+The application waits this many seconds after all URLs have been checked.
 
 ## Example Output
 
@@ -151,23 +188,20 @@ Each entry includes:
 - URL
 - HTTP status code or connection error details
 
-If no HTTP response is received, the application displays `DOWN` with a status code of `N/A`. In that case, the displayed duration represents the failed attempt rather than a received response.
+If no HTTP response is received, the application displays `DOWN` with a status code of `N/A`. The displayed duration represents the failed attempt.
 
 ## Current Limitations
 
 - Checks run sequentially.
-- Successful checks are not yet stored in a database.
-- Uptime percentages are not yet calculated.
-- The API currently checks a URL but does not save its result.
-- Reported duration includes network activity and response download time; it is not a measurement of server processing time alone.
+- Uptime percentages are not calculated yet.
+- URLs cannot be added or removed through the API yet.
 - Monitoring runs locally while the script is active.
 - A successful response from one URL does not guarantee that every feature of a service is working.
 
 ## Planned Improvements
 
-- SQLite database for persistent check history
-- Service management endpoints for adding and removing URLs
 - Uptime percentage calculations
+- Service management endpoints for adding and removing URLs
 - HTML dashboard
 - Docker support
 - PostgreSQL support
