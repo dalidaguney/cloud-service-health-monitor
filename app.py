@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from database import create_tables
 from monitor import check_service
 
-
 app = FastAPI(title="Cloud Service Health Monitor")
 
 # Make sure the database table exists when the API starts.
