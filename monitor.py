@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 
 import requests
 
-
 # Save error messages to monitor.log in the current working directory.
 logging.basicConfig(
     filename="monitor.log",

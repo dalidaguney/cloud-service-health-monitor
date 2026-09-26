@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+
 from monitor import check_service
 
 app = FastAPI(title="Cloud Service Health Monitor")
