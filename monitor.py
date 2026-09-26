@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 import requests
 
+from database import save_check
+
 # Save error messages to monitor.log in the current working directory.
 logging.basicConfig(
     filename="monitor.log",
@@ -68,13 +70,16 @@ def check_service(url):
 
     # Return the result so another file, such as app.py,
     # can use it as an API response.
-    return {
+    result = {
         "url": url,
         "status": status,
         "status_code": status_code,
         "response_time_ms": round(elapsed_ms),
         "checked_at": checked_at,
     }
+
+    save_check(result)
+    return result
 
 
 # Wait this many seconds after all URLs have been checked.
