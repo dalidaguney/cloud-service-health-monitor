@@ -7,15 +7,19 @@ A Python application that periodically checks website and API availability, meas
 - Checks multiple URLs sequentially.
 - Reports `UP` for HTTP status codes from 200 to 299 and `DOWN` for other codes.
 - Handles connection errors and timeouts.
-- Displays check duration in milliseconds.
-- Shows the local date and time when each check finishes.
+- Displays response time in milliseconds.
+- Shows the local date and time with timezone information.
 - Records failed checks in `monitor.log`.
 - Waits for a configurable interval between check rounds.
+- Provides a FastAPI endpoint for checking a service.
+- Provides interactive API documentation with Swagger UI.
 - Stops gracefully with Control + C.
 
 ## Technologies
 
 - Python
+- FastAPI
+- Uvicorn
 - requests
 - Python standard library: time, datetime, and logging
 
@@ -39,7 +43,7 @@ py -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-## Usage
+## Monitoring Script Usage
 
 With the virtual environment activated, run:
 
@@ -47,11 +51,67 @@ With the virtual environment activated, run:
 python monitor.py
 ```
 
+The script checks every URL in the `urls` list, waits for the configured interval, and starts the next round.
+
 Press **Control + C** in the terminal to stop monitoring.
+
+## FastAPI API
+
+Start the API server with:
+
+```bash
+uvicorn app:app --reload
+```
+
+The API will be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+The root endpoint confirms that the API is running:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Interactive API documentation is available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Check a Service Through the API
+
+Use the `/check` endpoint with a URL query parameter:
+
+```text
+http://127.0.0.1:8000/check?url=https://www.google.com
+```
+
+The endpoint returns JSON containing:
+
+- URL
+- Service status
+- HTTP status code
+- Response time in milliseconds
+- Check time
+
+Example response:
+
+```json
+{
+  "url": "https://www.google.com",
+  "status": "UP",
+  "status_code": 200,
+  "response_time_ms": 523,
+  "checked_at": "2026-09-26 23:54:07 +0300"
+}
+```
 
 ## Configuration
 
-Edit the `urls` list in `monitor.py` to choose which services to monitor:
+Edit the `urls` list in `monitor.py` to choose which services the monitoring script checks:
 
 ```python
 urls = [
@@ -66,7 +126,7 @@ Set the waiting interval using:
 CHECK_INTERVAL_SECONDS = 30
 ```
 
-The application waits this many seconds after all URLs have been checked. The total duration of a round includes both the checks and the waiting interval.
+The application waits this many seconds after all URLs have been checked. A complete monitoring round includes the check durations and this waiting time.
 
 ## Example Output
 
@@ -75,7 +135,7 @@ https://www.google.com
 Status: UP
 Status Code: 200
 Response Time: 523 ms
-Checked At: 2026-09-26 23:06:59
+Checked At: 2026-09-26 23:06:59 +0300
 ```
 
 Actual results depend on the network connection and the monitored service.
@@ -96,16 +156,20 @@ If no HTTP response is received, the application displays `DOWN` with a status c
 ## Current Limitations
 
 - Checks run sequentially.
-- Successful checks are not yet stored.
+- Successful checks are not yet stored in a database.
 - Uptime percentages are not yet calculated.
+- The API currently checks a URL but does not save its result.
 - Reported duration includes network activity and response download time; it is not a measurement of server processing time alone.
+- Monitoring runs locally while the script is active.
 - A successful response from one URL does not guarantee that every feature of a service is working.
-- Monitoring runs locally while the script is active; cloud deployment is planned.
 
 ## Planned Improvements
 
-- FastAPI backend for managing monitored services and accessing results
-- Persistent check history in a database
-- Uptime calculations and a dashboard
+- SQLite database for persistent check history
+- Service management endpoints for adding and removing URLs
+- Uptime percentage calculations
+- HTML dashboard
 - Docker support
-- CI/CD workflows and cloud deployment
+- PostgreSQL support
+- CI/CD workflows
+- Cloud deployment
