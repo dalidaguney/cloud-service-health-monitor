@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 
-from database import create_tables
+from database import create_tables, get_recent_checks
 from monitor import check_service
+
 
 app = FastAPI(title="Cloud Service Health Monitor")
 
-# Make sure the database table exists when the API starts.
+# Create the database table when the API starts.
 create_tables()
 
 
@@ -17,3 +18,8 @@ def read_root():
 @app.get("/check")
 def check_url(url: str):
     return check_service(url)
+
+
+@app.get("/checks")
+def list_checks(limit: int = 20):
+    return get_recent_checks(limit)

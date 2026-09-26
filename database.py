@@ -52,3 +52,26 @@ def save_check(result):
 
     connection.commit()
     connection.close()
+
+def get_recent_checks(limit=20):
+    connection = get_connection()
+
+    rows = connection.execute(
+        """
+        SELECT
+            id,
+            url,
+            status,
+            status_code,
+            response_time_ms,
+            checked_at
+        FROM checks
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+
+    connection.close()
+
+    return [dict(row) for row in rows]
